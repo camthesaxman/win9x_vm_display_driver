@@ -1,0 +1,59 @@
+LIBRARY DISPLAY
+
+; single data section for all processes
+DATA PRELOAD FIXED SINGLE
+
+DESCRIPTION 'DISPLAY : 100, 96, 96 : Virtual display driver.'
+EXETYPE WINDOWS
+
+SEGMENTS
+    _TEXT       PRELOAD  FIXED SHARED
+    _INIT       PRELOAD  FIXED SHARED
+	_INIT32		PRELOAD  MOVEABLE
+
+EXPORTS
+    BitBlt              @1
+    ColorInfo           @2
+    Control             @3
+    Disable             @4
+    Enable              @5
+    EnumDFonts          @6
+    EnumObj             @7
+    Output              @8
+    Pixel               @9
+    RealizeObject       @10
+    StrBlt              @11
+    ScanLR              @12
+    DeviceMode          @13     NODATA          ;We nop this routine
+
+    ExtTextOut          @14
+    GetCharWidth        @15     NODATA
+    DeviceBitmap        @16     NODATA          ;We don't handle this
+    FastBorder          @17
+    SetAttribute        @18     NODATA          ;We don't handle this
+
+    DibBlt              @19                     ;for device independent bitmaps
+    CreateDIBitmap      @20
+    DibToDevice         @21
+
+    SetPalette          @22                     ;palette stuff, Win 3.0
+    GetPalette          @23
+
+    SetPaletteTranslate @24
+    GetPaletteTranslate @25
+    UpdateColors        @26                     ;translate pixels on screen
+    StretchBlt          @27
+    StretchDIBits       @28
+
+    SelectBitmap        @29
+    BitmapBits          @30
+    ReEnable            @31
+
+    Inquire             @101                    ;Mouse cursor stuff
+    SetCursor           @102
+    MoveCursor          @103
+    CheckCursor         @104
+
+    GetDriverResourceID @450
+    UserRepaintDisable  @500
+    ValidateMode	@700

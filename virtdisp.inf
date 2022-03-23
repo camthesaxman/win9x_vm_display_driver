@@ -1,0 +1,96 @@
+; Installation file for Display Driver
+
+[version]
+Class=DISPLAY
+signature="$CHICAGO$"
+Provider=%Mfg%
+
+[DestinationDirs]
+DefaultDestDir = 11
+MyDriver.Copy = 11
+
+[SourceDisksNames]
+1=%MyDriver.DiskName%,,0
+
+[SourceDisksFiles]
+virtdisp.drv=1
+
+[Manufacturer]
+"%Mfg%"=Mfg
+
+[Mfg]
+%MyDriver.DeviceDesc%=MyDriver.Install, PCI\VEN_1234&DEV_1111
+
+[MyDriver.Install]
+CopyFiles=MyDriver.CopyFiles
+DelReg=Prev.DelReg
+AddReg=MyDriver.AddReg
+
+; Files to copy
+[MyDriver.CopyFiles]
+virtdisp.drv
+
+[Prev.DelReg]
+HKR,,DevLoader
+HKR,,Ver
+HKR,DEFAULT
+HKR,MODES
+HKR,CURRENT
+
+[MyDriver.AddReg]
+HKR,,Ver,,4.0
+HKR,,DevLoader,,*vdd
+HKR,DEFAULT,Mode,,"32,640,480"
+HKR,DEFAULT,drv,,virtdisp.drv
+HKR,DEFAULT,vdd,,"*vdd,*vflatd"
+; HKR,DEFAULT,minivdd,,MyDriver.vxd
+HKR,DEFAULT,RefreshRate,,-1
+HKR,DEFAULT,DDC,,1
+; HKR,"MODES\4\640,480",drv,,vga.drv
+HKR,"MODES\4\640,480"
+; HKR,"MODES\4\640,480",vdd,,*vdd
+HKR,"MODES\8\640,480"
+HKR,"MODES\8\800,600"
+HKR,"MODES\8\1024,768"
+HKR,"MODES\8\1152,882"
+HKR,"MODES\8\1440,900"
+HKR,"MODES\8\1600,900"
+HKR,"MODES\8\1280,1024"
+HKR,"MODES\8\1600,1200"
+HKR,"MODES\8\1920,1080"
+HKR,"MODES\8\3840,2160"
+HKR,"MODES\16\640,480"
+HKR,"MODES\16\800,600"
+HKR,"MODES\16\1024,768"
+HKR,"MODES\16\1152,882"
+HKR,"MODES\16\1440,900"
+HKR,"MODES\16\1600,900"
+HKR,"MODES\16\1280,1024"
+HKR,"MODES\16\1600,1200"
+HKR,"MODES\16\1920,1080"
+HKR,"MODES\16\3840,2160"
+HKR,"MODES\24\640,480"
+HKR,"MODES\24\800,600"
+HKR,"MODES\24\1024,768"
+HKR,"MODES\24\1152,882"
+HKR,"MODES\24\1440,900"
+HKR,"MODES\24\1600,900"
+HKR,"MODES\24\1280,1024"
+HKR,"MODES\24\1600,1200"
+HKR,"MODES\24\1920,1080"
+HKR,"MODES\32\640,480"
+HKR,"MODES\32\800,600"
+HKR,"MODES\32\1024,768"
+HKR,"MODES\32\1152,882"
+HKR,"MODES\32\1440,900"
+HKR,"MODES\32\1600,900"
+HKR,"MODES\32\1280,1024"
+HKR,"MODES\32\1600,1200"
+HKR,"MODES\32\1920,1080"
+HKR,"MODES\32\3840,2160"
+
+[Strings]
+ClassName="Display"
+Mfg="Unknown"
+MyDriver.DeviceDesc="Virtual Display Adapter"
+MyDriver.DiskName="Virtual Display Driver Disk"
