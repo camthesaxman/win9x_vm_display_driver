@@ -36,7 +36,13 @@ DRV_FILE := $(DRIVERNAME).drv
 DEF_FILE := $(DRIVERNAME).def
 MAP_FILE := $(DRIVERNAME).map
 INF_FILE := $(DRIVERNAME).inf
-OBJ_FILES := init.obj display.obj dibstubs.obj bga.obj debug.obj
+OBJ_FILES := \
+    init.obj \
+    display.obj \
+    dibstubs.obj \
+    bga.obj \
+    debug.obj \
+    palettes.obj
 FLOPPY_IMG := install.img
 
 # Link driver

@@ -37,31 +37,14 @@ WORD wPalettized = 0;
 
 #define MAPTOWHITE 1
 
-RGBQUAD colors4bpp[] =
-{
-    {   0,   0,   0, 0          },  // Black
-    {   0,   0, 128, 0          },  // Dark Red
-    {   0, 128,   0, 0          },  // Dark Green
-    {   0, 128, 128, 0          },  // Dark Yellow
-    { 128,   0,   0, 0          },  // Dark Blue
-    { 128,   0, 128, 0          },  // Dark Purple
-    { 128, 128,   0, 0          },  // Dark Cyan
-    { 192, 192, 192, MAPTOWHITE },  // Light Gray
-    { 128, 128, 128, MAPTOWHITE },  // Dark Gray
-    {   0,   0, 255, 0          },  // Light Red
-    {   0, 255,   0, MAPTOWHITE },  // Light Green
-    {   0, 255, 255, MAPTOWHITE },  // Light Yellow
-    { 255,   0,   0, 0          },  // Light Blue
-    { 255,   0, 255, 0          },  // Light Purple
-    { 255, 255,   0, MAPTOWHITE },  // Light Cyan
-    { 255, 255, 255, MAPTOWHITE },  // White
-};
+extern RGBQUAD palette4bpp[16];
+extern RGBQUAD palette8bpp[256];
 
 #pragma code_seg("_INIT")
 
-void bga_set_palette(RGBQUAD *colors, int nColors)
+void bga_set_palette(const RGBQUAD* colors, int nColors)
 {
-    RGBQUAD* color = colors;
+    const RGBQUAD* color = colors;
     // write index of first color
     __asm {
         mov dx, 0x3C8
@@ -91,7 +74,7 @@ int is_supported_mode(int w, int h, int bpp)
 {
     return (w >= 320 && h >= 240
     // paletted modes currently don't work
-     && (/*bpp == 4 || bpp == 8 ||*/ bpp == 16 || bpp == 32));
+     && (bpp == 4 || bpp == 8 || bpp == 16 || bpp == 32));
 }
 
 void load_display_settings(void)
@@ -132,6 +115,8 @@ void load_display_settings(void)
             debug_print("unsupported video mode\n");
         break;
     }
+
+    //wBPP = 8;
 
     wPalettized = (wBPP <= 8);
 
@@ -228,7 +213,8 @@ static void register_with_vdd(void)
         mov di, cs
         mov es, di
         mov di, OFFSET ResetHiResMode
-        mov edx, -1
+        mov ecx, dwFrameBufSize  // ecx = frame buffer size
+        mov edx, -1              // edx = something to do with emulating VGA in a window?
         call dwVDDEntry
     }
 
@@ -278,7 +264,7 @@ UINT DLLFUNC Enable(LPVOID lpDevice, UINT style, LPSTR lpDeviceType, LPSTR lpOut
         gi->dpCaps1 = C1_REINIT_ABLE|C1_BYTE_PACKED|C1_GLYPH_INDEX|C1_COLORCURSOR|C1_SLOW_CARD;
         gi->dpLogPixelsX = wDPI;
         gi->dpLogPixelsY = wDPI;
-        gi->dpDCManage = 4;
+        gi->dpDCManage = DC_IGNOREDFNP;
         gi->dpHorzRes = wXResolution;
         gi->dpVertRes = wYResolution;
         gi->dpBitsPixel = wBPP;
@@ -361,9 +347,7 @@ UINT DLLFUNC Enable(LPVOID lpDevice, UINT style, LPSTR lpDeviceType, LPSTR lpOut
             dibeng->deFlags |= FIVE6FIVE;
         dibeng->deVersion = 0x400;  // designed for Windows 95
         dibeng->deBeginAccess = DIB_BeginAccess;
-        PRINTVAR(dibeng->deBeginAccess);
         dibeng->deEndAccess = DIB_EndAccess;
-        PRINTVAR(dibeng->deEndAccess);
         dibeng->deDriverReserved = 0;
         dibeng->deBitmapInfo = bi;
 
@@ -374,26 +358,24 @@ UINT DLLFUNC Enable(LPVOID lpDevice, UINT style, LPSTR lpDeviceType, LPSTR lpOut
         bi->bmiHeader.biBitCount = wBPP;
         // zero out the rest
         bi->bmiHeader.biCompression
-        = bi->bmiHeader.biSizeImage
-        = bi->bmiHeader.biXPelsPerMeter
-        = bi->bmiHeader.biYPelsPerMeter
-        = bi->bmiHeader.biClrUsed
-        = bi->bmiHeader.biClrImportant
-        = 0;
+            = bi->bmiHeader.biSizeImage
+            = bi->bmiHeader.biXPelsPerMeter
+            = bi->bmiHeader.biYPelsPerMeter
+            = bi->bmiHeader.biClrUsed
+            = bi->bmiHeader.biClrImportant
+            = 0;
 
-        /*
         if (wBPP == 8)
         {
             for (i = 0; i < 256; i++)
-                bi->bmiColors[i] =
-
+                bi->bmiColors[i] = palette8bpp[i];
+            bga_set_palette(palette4bpp, 256);
         }
-        */
-        if (wBPP == 4)
+        else if (wBPP == 4)
         {
             for (i = 0; i < 16; i++)
-                bi->bmiColors[i] = colors4bpp[i];
-            bga_set_palette(colors4bpp, 16);
+                bi->bmiColors[i] = palette4bpp[i];
+            bga_set_palette(palette4bpp, 16);
         }
 
         wEnabled = 1;
