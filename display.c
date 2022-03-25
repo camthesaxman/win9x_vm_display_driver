@@ -42,20 +42,23 @@ extern RGBQUAD palette8bpp[256];
 
 #pragma code_seg("_INIT")
 
-void bga_set_palette(const RGBQUAD* colors, int nColors)
+void bga_set_palette(const RGBQUAD* colors, BYTE startIndex, int nColors)
 {
     const RGBQUAD* color = colors;
+
     // write index of first color
     __asm {
         mov dx, 0x3C8
-        mov al, 0
+        mov al, startIndex
         out dx, al
     }
     while (nColors-- > 0)
     {
-        BYTE r = color->rgbRed / 4;
+        // Contrary to the documentation and struct definitions, the RGBQUADs
+        // passed into SetPalette seem to actually be red, green, blue, not blue, green, red
+        BYTE r = color->rgbBlue / 4;
         BYTE g = color->rgbGreen / 4;
-        BYTE b = color->rgbBlue / 4;
+        BYTE b = color->rgbRed / 4;
         // write color value
         __asm {
             mov dx, 0x03C9
@@ -85,6 +88,7 @@ void load_display_settings(void)
     // get info from registry
     void* pdispInfo = &dispInfo;
     DWORD size = sizeof(dispInfo);
+    debug_print("load_display_settings\n");
     __asm {
         mov ax, VDD_GET_DISPLAY_CONFIG
         les di, pdispInfo
@@ -115,8 +119,6 @@ void load_display_settings(void)
             debug_print("unsupported video mode\n");
         break;
     }
-
-    //wBPP = 8;
 
     wPalettized = (wBPP <= 8);
 
@@ -272,12 +274,13 @@ UINT DLLFUNC Enable(LPVOID lpDevice, UINT style, LPSTR lpDeviceType, LPSTR lpOut
 
         if (wBPP == 8)
         {
-            gi->dpNumPens = gi->dpNumColors = 256;
+            gi->dpNumPens = 16;
+            gi->dpNumColors = 20;
             gi->dpNumBrushes = -1;
-            gi->dpNumPalReg = 0;
-            gi->dpPalReserved = 0;
-            gi->dpColorRes = 0;
-            gi->dpRaster |= RC_DIBTODEV;
+            gi->dpNumPalReg = 256;
+            gi->dpPalReserved = 20;
+            gi->dpColorRes = 18;
+            gi->dpRaster |= RC_PALETTE|RC_DIBTODEV|RC_SAVEBITMAP;
             gi->dpDEVICEsize += sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD);
         }
         else if (wBPP < 8)
@@ -369,13 +372,13 @@ UINT DLLFUNC Enable(LPVOID lpDevice, UINT style, LPSTR lpDeviceType, LPSTR lpOut
         {
             for (i = 0; i < 256; i++)
                 bi->bmiColors[i] = palette8bpp[i];
-            bga_set_palette(palette4bpp, 256);
+            bga_set_palette(palette4bpp, 0, 256);
         }
         else if (wBPP == 4)
         {
             for (i = 0; i < 16; i++)
                 bi->bmiColors[i] = palette4bpp[i];
-            bga_set_palette(palette4bpp, 16);
+            bga_set_palette(palette4bpp, 0, 16);
         }
 
         wEnabled = 1;
@@ -449,4 +452,11 @@ int DLLFUNC Disable(LPPDEVICE lpDevice)
 UINT DLLFUNC ValidateMode(DISPVALMODE FAR *lpValMode)
 {
     return is_supported_mode(lpValMode->dvmXRes, lpValMode->dvmYRes, lpValMode->dvmBpp) ? VALMODE_YES : VALMODE_NO_UNKNOWN;
+}
+
+UINT DLLFUNC SetPalette(WORD wStartIndex, WORD wNumEntries, LPVOID lpPalette)
+{
+    DIB_SetPaletteExt(wStartIndex, wNumEntries, lpPalette, lpDriverPDevice);
+    bga_set_palette(lpPalette, wStartIndex, wNumEntries);
+    return 0;
 }

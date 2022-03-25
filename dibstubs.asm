@@ -105,7 +105,7 @@ DIB_STUB StretchDIBits,       DIB_StretchDIBits
 DIB_STUB DeviceBitmap,        DIB_DeviceBitmap
 DIB_STUB SetAttribute,        DIB_SetAttribute
 DIB_STUB FastBorder,          DIB_FastBorder
-DIB_STUB SetPalette,          DIB_SetPalette
+;DIB_STUB SetPalette,          DIB_SetPalette
 DIB_STUB ExtTextOut,          DIB_ExtTextOut
 DIB_STUB StrBlt,              DIB_StrBlt
 

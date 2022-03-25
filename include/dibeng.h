@@ -99,3 +99,16 @@ void WINAPI DIB_EndAccess(
 	LPPDEVICE lpDevice,  /* Address of the PDEVICE structure. */
 	WORD Flags           /* Can be one of these values: FB_ACCESS, CURSOREXCLUDE */
 );
+
+/* Sets one or more entries in the hardware color palette to the specified colors. */
+/* No return value. */
+/* The export ordinal for this function is 405. */
+void WINAPI DIB_SetPaletteExt(
+    WORD nStartIndex,      /* A zero-based color-palette index. The function copies color values to the corresponding
+                              hardware-palette entry and to subsequent entries up to the number specified by the
+			      nNumEntries parameter. */
+    WORD nNumEntries,      /* The number of entries to set in the hardware palette. */
+    LPRGBQUAD lpPalette,   /* Address of an array of RGBQUAD structures specifying the colors to which to set the
+                              hardware-palette entries. */
+    LPPDEVICE lpDIBEngine  /* Address of PDEVICE structure that specifies color data for the display surface. */
+);
