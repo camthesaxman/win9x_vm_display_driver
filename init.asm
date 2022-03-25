@@ -42,8 +42,35 @@ DriverInit ENDP
 PUBLIC  _big_code_
 _big_code_ LABEL FAR
 
-_INIT ENDS
+;========================================================================
+;==     Name:           I4M,U4M                                        ==
+;==     Operation:      integer four byte multiply                     ==
+;==     Inputs:         DX;AX   integer M1                             ==
+;==                     CX;BX   integer M2                             ==
+;==     Outputs:        DX;AX   product                                ==
+;==     Volatile:       CX, BX destroyed                               ==
+;========================================================================
+__U4M PROC PUBLIC
+        xchg    ax,bx           ; swap low(M1) and low(M2)
+        push    ax              ; save low(M2)
+        xchg    ax,dx           ; exchange low(M2) and high(M1)
+        or      ax,ax           ; if high(M1) non-zero
+        jz @f              ; then
+          mul   dx              ; - low(M2) * high(M1)
+        @@:                  ; endif
+        xchg    ax,cx           ; save that in cx, get high(M2)
+        or      ax,ax           ; if high(M2) non-zero
+        jz @f              ; then
+          mul   bx              ; - high(M2) * low(M1)
+          add   cx,ax           ; - add to total
+        @@:                  ; endif
+        pop     ax              ; restore low(M2)
+        mul     bx              ; low(M2) * low(M1)
+        add     dx,cx           ; add previously computed high part
+        ret                     ; and return!!!
+__U4M ENDP
 
+_INIT ENDS
 
 ; Set DriverInit as the DLL entry point
 END DriverInit

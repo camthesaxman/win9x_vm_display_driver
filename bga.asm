@@ -22,16 +22,14 @@ EXTERN _wYResolution      : WORD
 EXTERN _wBPP              : WORD
 EXTERN _wFrameBufSelector : WORD
 
-EXTERN pci_config_read_dword : NEAR
-EXTERN pci_find_device       : NEAR
+EXTERN pci_config_read_dword      : NEAR
+EXTERN pci_config_write_dword     : NEAR
+EXTERN pci_get_device_config_base : NEAR
 
 ;-------------------------------------------------------------------------------
 ; Defines
 ;-------------------------------------------------------------------------------
-GET_VM_HANDLE              EQU 1683h
 GET_DEVICE_API_ENTRY_POINT EQU 1684h
-STOP_IO_TRAP               EQU 4000h
-START_IO_TRAP              EQU 4007h
 VFLATD_VXD                 EQU 11Fh
 
 ; Bochs Graphics Adapter ports
@@ -49,11 +47,12 @@ VBE_DISPI_INDEX_BANK   EQU 0005h
 ;-------------------------------------------------------------------------------
 ; Variables
 ;-------------------------------------------------------------------------------
+PUBLIC _vflatdEntry
+PUBLIC _dwFrameBufAddr
 _DATA_BSS SEGMENT PUBLIC 'FAR_DATA'
-    _vflatdEntry     DD 0
-    _dwFrameBufAddr  DD 0
-    PUBLIC _vflatdEntry
-    PUBLIC _dwFrameBufAddr
+    _vflatdEntry       DD 0  ; vflatd.vxd entry point
+    _dwFrameBufAddr    DD 0
+    dwPhysFrameBufAddr DD 0  ; physical address of the linear frame buffer
 _DATA_BSS ENDS
 ASSUME ds:_DATA_BSS
 
@@ -62,6 +61,73 @@ ASSUME ds:_DATA_BSS
 ; Code (16-bit)
 ;-------------------------------------------------------------------------------
 _INIT SEGMENT WORD PUBLIC USE16 'CODE'
+
+; Detects the Bochs Graphics adapter and the size and location of its VRAM
+; Called from the DriverInit on startup
+; Returns
+;   1 on success, 0 on failure
+bga_hardware_detect_ PROC FAR PUBLIC
+    push esi
+    cli  ; disable interrupts so we don't get preempted while manipulating ports
+
+    ; check ID of adapter (must be between 0xB0C0 and 0xB0C5)
+    mov ax, VBE_DISPI_INDEX_ID
+    call bga_read_reg
+    cmp ax, 0B0C0h
+    jb failure
+    cmp ax, 0B0C5h
+    ja failure
+
+    ; probe for PCI device
+    mov eax, 11111234h
+    call pci_get_device_config_base
+    cmp eax, -1
+    jne found_pci
+    mov eax, 01001B36h  ; QEMU QXL also supports this
+    call pci_get_device_config_base
+    cmp eax, -1
+    je failure
+
+  found_pci:
+
+    mov al, 10h
+    mov esi, eax  ; save config address of BAR0
+
+    ; Read the frame buffer address from BAR0
+    call pci_config_read_dword
+    push eax  ; save original BAR0
+    and al, 0F0h  ; clear lower 4 bits to get the actual address
+    mov dwPhysFrameBufAddr, eax
+
+    ; Get the size of the frame buffer by writing all 1s, then reading it back
+    ; to see what is masked
+    mov eax, esi
+    xor ebx, ebx
+    not ebx
+    call pci_config_write_dword
+    mov eax, esi
+    call pci_config_read_dword
+    and al, 0F0h
+    not eax
+    inc eax
+    mov _dwVideoMemSize, eax
+
+    ; Restore original BAR0 value
+    mov eax, esi
+    pop ebx
+    call pci_config_write_dword
+
+  success:
+    mov ax, 1
+    jmp done
+  failure:
+    xor ax, ax
+  done:
+
+    sti  ; re-enable interrupts
+    pop esi
+    retf
+bga_hardware_detect_ ENDP
 
 ; Enables the Bochs Graphics Adapter hardware
 ; Returns:
@@ -75,25 +141,14 @@ bga_phys_enable_ PROC FAR PUBLIC
     retf
 bga_phys_enable_ ENDP
 
-; Resets the Bochs Graphics Adapter hardware
+; Resets the Bochs Graphics Adapter hardware and applies the current resolution
+; settings
 ; Returns:
 ;    1 on success, 0 on failure
 bga_phys_reset PROC NEAR
     cli  ; disable interrupts so we don't get preempted while manipulating ports
 
-    ; check ID of adapter (must be between 0xB0C0 and 0xB0C5)
-    mov ax, VBE_DISPI_INDEX_ID
-    call bga_read_reg
-    cmp ax, 0B0C0h
-    jb failure
-    cmp ax, 0B0C5h
-    ja failure
-
-    ; TODO: find some way to determine actual memory size
-    ; assume 16 MB for now
-    mov _dwVideoMemSize, (16 * 1024 * 1024)
-
-    ; disable VBE extensions
+    ; temporarily disable VBE extensions
     mov ax, VBE_DISPI_INDEX_ENABLE
     xor bx, bx
     call bga_write_reg
@@ -114,15 +169,8 @@ bga_phys_reset PROC NEAR
     mov bx, 1
     call bga_write_reg
 
-  success:
     mov ax, 1
-    jmp done
-  failure:
-    xor ax, ax
-  done:
-
     sti  ; re-enable interrupts
-
     ret
 bga_phys_reset ENDP
 
@@ -149,17 +197,9 @@ bga_vflatd_init PROC NEAR
     mov dx, VflatD_Query
     call DWORD PTR _vflatdEntry
 
-    ; Find PCI device of adapter (ven=1234, dev=1111)
-
-    mov eax, 11111234h
-    call pci_find_device
-    cmp ax, -1
-    jz no_linear_fb  ; device not found
-
-    ; Read the PCI base address 0 (BAR0)
-    mov bx, 1000h  ; func 0x00, offset 0x10
-    call pci_config_read_dword
-    and ax, 0FFF0h  ; clear lower 4 bits to get the actual address
+    mov eax, dwPhysFrameBufAddr
+    test eax, eax  ; can we use the linear framebuffer
+    jz no_linear_fb
 
     ; Get a selector for the linear framebuffer
     ; dl  = function number

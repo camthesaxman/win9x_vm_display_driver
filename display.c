@@ -17,6 +17,7 @@
 #define STOP_IO_TRAP               0x4000
 #define START_IO_TRAP              0x4007
 
+extern int bga_hardware_detect(void);
 extern int bga_phys_enable(void);
 
 DWORD dwVideoMemSize = 16 * 1024 * 1024;
@@ -73,10 +74,19 @@ void bga_set_palette(const RGBQUAD* colors, BYTE startIndex, int nColors)
     }
 }
 
+WORD calc_scanline_size(WORD w, WORD bpp)
+{
+    return (w * bpp + 7) >> 3;
+}
+
+DWORD calc_framebuffer_size(WORD w, WORD h, WORD bpp)
+{
+    return (DWORD)calc_scanline_size(w, bpp) * h;
+}
+
 int is_supported_mode(int w, int h, int bpp)
 {
     return (w >= 320 && h >= 240
-    // paletted modes currently don't work
      && (bpp == 4 || bpp == 8 || bpp == 16 || bpp == 32));
 }
 
@@ -109,7 +119,8 @@ void load_display_settings(void)
         break;
     case 0:  // success
         debug_print("got resolution settings\n");
-        if (is_supported_mode(wXResolution, wYResolution, wBPP))
+        if (is_supported_mode(dispInfo.diXRes, dispInfo.diYRes, dispInfo.diBpp)
+         && dwVideoMemSize >= calc_framebuffer_size(dispInfo.diXRes, dispInfo.diYRes, dispInfo.diBpp))
         {
             wXResolution = dispInfo.diXRes;
             wYResolution = dispInfo.diYRes;
@@ -164,6 +175,10 @@ int DLLFUNC display_driver_init(void)
     }
     PRINTVAR(wVMHandle);
 
+    if (!bga_hardware_detect())
+        return 0;
+
+    PRINTVAR(dwVideoMemSize);
     load_display_settings();
 
     return 1;
@@ -318,9 +333,9 @@ UINT DLLFUNC Enable(LPVOID lpDevice, UINT style, LPSTR lpDeviceType, LPSTR lpOut
 
         lpDriverPDevice = lpDevice;
         // compute size of scanline in bytes (rounded up)
-        wScanlineSize = (wXResolution * wBPP + 7) >> 3;
+        wScanlineSize = calc_scanline_size(wXResolution, wBPP);
         // compute size of framebuffer in bytes
-        dwFrameBufSize = wScanlineSize * wYResolution;
+        dwFrameBufSize = calc_framebuffer_size(wXResolution, wYResolution, wBPP);
         PRINTVAR(wScanlineSize);
         PRINTVAR(dwFrameBufSize);
 
@@ -451,14 +466,12 @@ int DLLFUNC Disable(LPPDEVICE lpDevice)
 
 UINT DLLFUNC ValidateMode(DISPVALMODE FAR *lpValMode)
 {
-    WORD lineSize;
     DWORD scrnSize;
 
     if (!is_supported_mode(lpValMode->dvmXRes, lpValMode->dvmYRes, lpValMode->dvmBpp))
         return VALMODE_NO_UNKNOWN;
     // do we have enough memory?
-    lineSize = (lpValMode->dvmXRes * lpValMode->dvmBpp + 7) >> 3;
-    scrnSize = lineSize * lpValMode->dvmYRes;
+    scrnSize = calc_framebuffer_size(lpValMode->dvmXRes, lpValMode->dvmYRes, lpValMode->dvmBpp);
     if (dwVideoMemSize < scrnSize)
         return VALMODE_NO_NOMEM;
     return VALMODE_YES;

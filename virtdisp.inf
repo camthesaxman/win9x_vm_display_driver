@@ -16,10 +16,11 @@ MyDriver.Copy = 11
 virtdisp.drv=1
 
 [Manufacturer]
-"%Mfg%"=Mfg
+"%Mfg%"=DeviceList
 
-[Mfg]
-%MyDriver.DeviceDesc%=MyDriver.Install, PCI\VEN_1234&DEV_1111
+[DeviceList]
+%MyDriver.DeviceDescStd%=MyDriver.Install, PCI\VEN_1234&DEV_1111
+%MyDriver.DeviceDescQxl%=MyDriver.Install, PCI\VEN_1B36&DEV_0100
 
 [MyDriver.Install]
 CopyFiles=MyDriver.CopyFiles
@@ -92,5 +93,6 @@ HKR,"MODES\32\3840,2160"
 [Strings]
 ClassName="Display"
 Mfg="Unknown"
-MyDriver.DeviceDesc="Virtual Display Adapter"
+MyDriver.DeviceDescStd="QEMU Standard Display Adapter"
+MyDriver.DeviceDescQxl="QEMU QXL Display Adapter"
 MyDriver.DiskName="Virtual Display Driver Disk"
