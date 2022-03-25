@@ -19,7 +19,7 @@
 
 extern int bga_phys_enable(void);
 
-DWORD dwVideoMemSize = 0;
+DWORD dwVideoMemSize = 16 * 1024 * 1024;
 DWORD dwFrameBufSize = 0;
 WORD wScanlineSize = 0;
 void *lpDriverPDevice = NULL;
@@ -451,7 +451,17 @@ int DLLFUNC Disable(LPPDEVICE lpDevice)
 
 UINT DLLFUNC ValidateMode(DISPVALMODE FAR *lpValMode)
 {
-    return is_supported_mode(lpValMode->dvmXRes, lpValMode->dvmYRes, lpValMode->dvmBpp) ? VALMODE_YES : VALMODE_NO_UNKNOWN;
+    WORD lineSize;
+    DWORD scrnSize;
+
+    if (!is_supported_mode(lpValMode->dvmXRes, lpValMode->dvmYRes, lpValMode->dvmBpp))
+        return VALMODE_NO_UNKNOWN;
+    // do we have enough memory?
+    lineSize = (lpValMode->dvmXRes * lpValMode->dvmBpp + 7) >> 3;
+    scrnSize = lineSize * lpValMode->dvmYRes;
+    if (dwVideoMemSize < scrnSize)
+        return VALMODE_NO_NOMEM;
+    return VALMODE_YES;
 }
 
 UINT DLLFUNC SetPalette(WORD wStartIndex, WORD wNumEntries, LPVOID lpPalette)

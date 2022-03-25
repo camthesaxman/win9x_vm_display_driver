@@ -42,7 +42,8 @@ OBJ_FILES := \
     dibstubs.obj \
     bga.obj \
     debug.obj \
-    palettes.obj
+    palettes.obj \
+    pci.obj
 FLOPPY_IMG := install.img
 
 # Link driver

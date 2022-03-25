@@ -22,6 +22,8 @@ EXTERN _wYResolution      : WORD
 EXTERN _wBPP              : WORD
 EXTERN _wFrameBufSelector : WORD
 
+EXTERN pci_config_read_dword : NEAR
+EXTERN pci_find_device       : NEAR
 
 ;-------------------------------------------------------------------------------
 ; Defines
@@ -88,7 +90,8 @@ bga_phys_reset PROC NEAR
     ja failure
 
     ; TODO: find some way to determine actual memory size
-    mov _dwVideoMemSize, (32 * 1024 * 1024)
+    ; assume 16 MB for now
+    mov _dwVideoMemSize, (16 * 1024 * 1024)
 
     ; disable VBE extensions
     mov ax, VBE_DISPI_INDEX_ENABLE
@@ -146,7 +149,42 @@ bga_vflatd_init PROC NEAR
     mov dx, VflatD_Query
     call DWORD PTR _vflatdEntry
 
-    ; Create virtual framebuffer
+    ; Find PCI device of adapter (ven=1234, dev=1111)
+
+    mov eax, 11111234h
+    call pci_find_device
+    cmp ax, -1
+    jz no_linear_fb  ; device not found
+
+    ; Read the PCI base address 0 (BAR0)
+    mov bx, 1000h  ; func 0x00, offset 0x10
+    call pci_config_read_dword
+    and ax, 0FFF0h  ; clear lower 4 bits to get the actual address
+
+    ; Get a selector for the linear framebuffer
+    ; dl  = function number
+    ; dh  = flags (must be zero)
+    ; eax = physical address of frame buffer
+    ; ecx = size of frame buffer
+    mov dx, VflatD_Create_Physical_Frame_Buffer
+    mov ecx, _dwVideoMemSize
+    call DWORD PTR _vflatdEntry
+    jc no_linear_fb  ; couldn't do it. maybe the virtual framebuffer works instead?
+    mov _wFrameBufSelector, ax
+    mov _dwFrameBufAddr, edx
+
+    jmp success
+
+  no_linear_fb:
+
+    ; Get a selector for the virtual bank-switched framebuffer
+    ; dl    = function number
+    ; dh    = flags (must be zero)
+    ; eax   = size of frame buffer
+    ; ebx   = bank size
+    ; esi   = physical address of bank
+    ; es:di = bank switch code
+    ; cx    = size of bank switch code
     xor edi, edi
     lea di, OFFSET BankSwitchRoutine  ; di = bank switch code offset
     mov ax, _INIT32
