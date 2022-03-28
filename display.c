@@ -186,7 +186,7 @@ int DLLFUNC display_driver_init(void)
 
 void redraw_screen(void)
 {
-	debug_print("redraw_screen\n");
+    debug_print("redraw_screen\n");
     if (redrawScreenFunc == NULL)
     {
         HMODULE hUser = GetModuleHandle("USER");
@@ -425,7 +425,7 @@ LONG DLLFUNC GetDriverResourceID(WORD wResId, void *lpResType)
 // Called whenever a mode change is requested
 UINT DLLFUNC ReEnable(LPPDEVICE lpDevice, void *lpGDIInfo)
 {
-	debug_print("ReEnable\n");
+    debug_print("ReEnable\n");
     bReEnable = TRUE;
     load_display_settings();
     // Call Enable to fill in a new GDIINFO block

@@ -34,20 +34,20 @@ ENDIF
     PUBLIC _name
     _name:
 IF DIBDEBUG
-	; print name
-	push es
-	push ds
-	push dx
-	mov dx, cs
-	mov ax, OFFSET string
-	push cs
-	call debug_print_
-	pop dx
-	pop ds
-	pop es
+    ; print name
+    push es
+    push ds
+    push dx
+    mov dx, cs
+    mov ax, OFFSET string
+    push cs
+    call debug_print_
+    pop dx
+    pop ds
+    pop es
 ENDIF
-	; jump to DIB function
-	jmp _target
+    ; jump to DIB function
+    jmp _target
 ENDM
 
 ; inserts an extra parameter onto the stack, then jumps to the target function
@@ -60,30 +60,30 @@ ENDIF
     PUBLIC _name
     _name:
 IF DIBDEBUG
-	; print name
-	push es
-	push ds
-	push dx
-	mov dx, cs
-	mov ax, OFFSET string
-	push cs
-	call debug_print_
-	pop dx
-	pop ds
-	pop es
+    ; print name
+    push es
+    push ds
+    push dx
+    mov dx, cs
+    mov ax, OFFSET string
+    push cs
+    call debug_print_
+    pop dx
+    pop ds
+    pop es
 ENDIF
-	; insert extra param onto stack
-	push es
-	mov ax, DGROUP
-	mov es, ax
-	pop ax
-	ASSUME es:_DATA
-	pop ecx
-	push es:_param
-	push ecx
-	mov es, ax
-	; jump to DIB function
-	jmp _target
+    ; insert extra param onto stack
+    push es
+    mov ax, DGROUP
+    mov es, ax
+    pop ax
+    ASSUME es:_DATA
+    pop ecx
+    push es:_param
+    push ecx
+    mov es, ax
+    ; jump to DIB function
+    jmp _target
 ENDM
 
 DIB_STUB BitBlt,              DIB_BitBlt

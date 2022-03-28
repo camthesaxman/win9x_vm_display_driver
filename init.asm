@@ -23,19 +23,19 @@ _INIT SEGMENT WORD PUBLIC USE16 'CODE'
 ; Return:
 ;   ax = 1 on success
 DriverInit PROC FAR PUBLIC
-	push bp
-	push si
-	push di
+    push bp
+    push si
+    push di
 
-	push _INIT
-	call GlobalSmartPageLock
+    push _INIT
+    call GlobalSmartPageLock
 
-	call display_driver_init
+    call display_driver_init
 
-	pop di
-	pop si
-	pop bp
-	ret
+    pop di
+    pop si
+    pop bp
+    ret
 DriverInit ENDP
 
 ; Watcom object files expect this symbol to be defined
@@ -51,23 +51,23 @@ _big_code_ LABEL FAR
 ;==     Volatile:       CX, BX destroyed                               ==
 ;========================================================================
 __U4M PROC PUBLIC
-        xchg    ax,bx           ; swap low(M1) and low(M2)
-        push    ax              ; save low(M2)
-        xchg    ax,dx           ; exchange low(M2) and high(M1)
-        or      ax,ax           ; if high(M1) non-zero
-        jz @f              ; then
-          mul   dx              ; - low(M2) * high(M1)
-        @@:                  ; endif
-        xchg    ax,cx           ; save that in cx, get high(M2)
-        or      ax,ax           ; if high(M2) non-zero
-        jz @f              ; then
-          mul   bx              ; - high(M2) * low(M1)
-          add   cx,ax           ; - add to total
-        @@:                  ; endif
-        pop     ax              ; restore low(M2)
-        mul     bx              ; low(M2) * low(M1)
-        add     dx,cx           ; add previously computed high part
-        ret                     ; and return!!!
+    xchg    ax,bx      ; swap low(M1) and low(M2)
+    push    ax         ; save low(M2)
+    xchg    ax,dx      ; exchange low(M2) and high(M1)
+    or      ax,ax      ; if high(M1) non-zero
+    jz @f              ; then
+    mul   dx           ; - low(M2) * high(M1)
+  @@:                  ; endif
+    xchg    ax,cx      ; save that in cx, get high(M2)
+    or      ax,ax      ; if high(M2) non-zero
+    jz @f              ; then
+    mul   bx           ; - high(M2) * low(M1)
+    add   cx,ax        ; - add to total
+  @@:                  ; endif
+    pop     ax         ; restore low(M2)
+    mul     bx         ; low(M2) * low(M1)
+    add     dx,cx      ; add previously computed high part
+    ret                ; and return!!!
 __U4M ENDP
 
 _INIT ENDS
