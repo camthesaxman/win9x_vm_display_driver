@@ -383,19 +383,6 @@ UINT DLLFUNC Enable(LPVOID lpDevice, UINT style, LPSTR lpDeviceType, LPSTR lpOut
             = bi->bmiHeader.biClrImportant
             = 0;
 
-        if (wBPP == 8)
-        {
-            for (i = 0; i < 256; i++)
-                bi->bmiColors[i] = palette8bpp[i];
-            bga_set_palette(palette4bpp, 0, 256);
-        }
-        else if (wBPP == 4)
-        {
-            for (i = 0; i < 16; i++)
-                bi->bmiColors[i] = palette4bpp[i];
-            bga_set_palette(palette4bpp, 0, 16);
-        }
-
         wEnabled = 1;
 
         debug_print("inited pdevice!\n");
